@@ -1,10 +1,7 @@
 import logging
 import multiprocessing
-import pickle
 import queue
 import threading
-import traceback
-from io import StringIO
 
 from polarrrgh.logger.config import LoggerConfig
 from polarrrgh.logger.handler import Handler

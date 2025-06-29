@@ -1,7 +1,4 @@
-import logging
-import time
-
-from polarrrgh.logger.logger import MProcHandlerCtx, close, get_logger
+from polarrrgh.logger.logger import LogCtx
 
 
 def main():
@@ -15,5 +12,5 @@ def main():
 
 
 if __name__ == "__main__":
-    with MProcHandlerCtx(mproc=True) as logger:
+    with LogCtx(mproc=True) as logger:
         main()

@@ -57,10 +57,6 @@ class Handler(logging.Handler):
         # Set capture warnings
         logging.captureWarnings(self.config.capture_warnings)
 
-        # Set capture exceptions
-        if self.config.capture_exceptions:
-            sys.excepthook = self._handle_exc
-
     def create_stream_handler(self) -> logging.StreamHandler:
         formatter = self.config.formatter
 
@@ -88,37 +84,6 @@ class Handler(logging.Handler):
 
     def create_handlers(self) -> list[logging.Handler]:
         return [self.create_stream_handler(), self.create_file_handler()]
-
-    def _handle_exc(
-        self,
-        exc_type: Type[BaseException],
-        exc_value: BaseException,
-        exc_tb: TracebackType,
-    ) -> None:
-        if issubclass(exc_type, KeyboardInterrupt):
-            sys.__excepthook__(exc_type, exc_value, exc_tb)
-            return
-
-        sio = StringIO()
-        traceback.print_exception(exc_type, exc_value, exc_tb, limit=None, file=sio)
-        s = sio.getvalue()
-        sio.close()
-        if s[-1:] == "\n":
-            s = s[:-1]
-
-        tb_info = traceback.extract_tb(exc_tb, 1)[0]
-        record = logging.LogRecord(
-            tb_info.name,
-            logging.ERROR,
-            tb_info.filename,
-            tb_info.lineno,
-            s,
-            [],
-            None,
-        )
-
-        self.emit(record)
-        self.close()
 
     def emit(self, record: logging.LogRecord) -> None:
         for handler in self.handlers:
