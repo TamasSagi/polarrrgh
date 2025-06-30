@@ -24,11 +24,15 @@ class LogCtx:
         logger = logging.getLogger(self.config.name)
         logger.setLevel(logging.DEBUG)
 
-        # TODO: it should be restricted to add the same handler twice
-        logger.addHandler(self.handler)
-
         # Redirect system hook to "do nothing"
         sys.excepthook = lambda *args: None
+
+        for handler in logger.handlers:
+            if isinstance(handler, (Handler, MProcHandler)):
+                return logger
+
+        # TODO: it should be restricted to add the same handler twice
+        logger.addHandler(self.handler)
 
     def __enter__(self) -> logging.Logger:
         return logging.getLogger(self.config.name)
@@ -73,7 +77,9 @@ class LogCtx:
 
 
 class MProcLogCtx(LogCtx):
-    def __init__(self, config: LoggerConfig | None = None, queue: queue.Queue | None = None):
+    def __init__(
+        self, config: LoggerConfig | None = None, queue: queue.Queue | None = None
+    ):
         self.config = config if config else LoggerConfig.default()
 
         self.manager = multiprocessing.Manager()
@@ -91,6 +97,10 @@ def init_queue_handler(queue: queue.Queue) -> logging.Logger:
     logger = logging.getLogger()
 
     logger.setLevel(logging.DEBUG)
+    for handler in logger.handlers:
+        if isinstance(handler, logging.handlers.QueueHandler):
+            return logger
+
     logger.addHandler(logging.handlers.QueueHandler(queue))
 
     return logger
