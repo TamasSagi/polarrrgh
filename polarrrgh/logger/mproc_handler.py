@@ -1,7 +1,7 @@
 import logging
-import multiprocessing
 import queue
 import threading
+from multiprocessing.managers import SyncManager
 
 from polarrrgh.logger.config import LoggerConfig
 from polarrrgh.logger.handler import Handler
@@ -14,11 +14,16 @@ class MProcHandler(Handler):
 
     SENTINEL = "BYE"
 
-    def __init__(self, config: LoggerConfig):
+    def __init__(
+        self,
+        config: LoggerConfig,
+        manager: SyncManager,
+        queue: queue.Queue,
+    ):
         super().__init__(config)
 
-        self.manager = multiprocessing.Manager()
-        self.queue = self.manager.Queue()
+        self.manager = manager
+        self.queue = queue
 
         self.receiver = threading.Thread(target=self.receive, daemon=False)
         self.receiver.start()
