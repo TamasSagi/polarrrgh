@@ -1,4 +1,7 @@
 import logging
+import logging.handlers
+import multiprocessing
+import queue
 import sys
 import traceback
 from io import StringIO
@@ -11,10 +14,13 @@ from polarrrgh.logger.mproc_handler import MProcHandler
 
 
 class LogCtx:
-    def __init__(self, config: LoggerConfig | None = None, mproc: bool = False):
+    def __init__(self, config: LoggerConfig | None = None):
         self.config = config if config else LoggerConfig.default()
-        self.handler = MProcHandler(self.config) if mproc else Handler(self.config)
+        self.handler = Handler(self.config)
 
+        self._setup_logger()
+
+    def _setup_logger(self) -> None:
         logger = logging.getLogger(self.config.name)
         logger.setLevel(logging.DEBUG)
 
@@ -24,7 +30,7 @@ class LogCtx:
         # Redirect system hook to "do nothing"
         sys.excepthook = lambda *args: None
 
-    def __enter__(self):
+    def __enter__(self) -> logging.Logger:
         return logging.getLogger(self.config.name)
 
     def __exit__(
@@ -64,3 +70,27 @@ class LogCtx:
             args=[],
             exc_info=None,
         )
+
+
+class MProcLogCtx(LogCtx):
+    def __init__(self, config: LoggerConfig | None = None, queue: queue.Queue | None = None):
+        self.config = config if config else LoggerConfig.default()
+
+        self.manager = multiprocessing.Manager()
+        self.queue = queue if queue else self.manager.Queue()
+
+        self.handler = MProcHandler(self.config, self.manager, self.queue)
+
+        self._setup_logger()
+
+    def __enter__(self) -> tuple[logging.Logger, queue.Queue]:
+        return (logging.getLogger(self.config.name), self.queue)
+
+
+def init_queue_handler(queue: queue.Queue) -> logging.Logger:
+    logger = logging.getLogger()
+
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.handlers.QueueHandler(queue))
+
+    return logger
