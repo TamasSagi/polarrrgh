@@ -1,11 +1,6 @@
 import logging
-import sys
-import traceback
 from datetime import datetime
-from io import StringIO
 from pathlib import Path
-from types import TracebackType
-from typing import Type
 
 from polarrrgh.logger.config import LoggerConfig
 
@@ -70,11 +65,14 @@ class Handler(logging.Handler):
         return s_handler
 
     def create_file_handler(self) -> logging.FileHandler:
+        base_path = Path.cwd() / "logs"
+        base_path.mkdir(exist_ok=True)
+
         if self.config.file_name:
-            path = Path.cwd() / self.config.file_name
+            path = base_path / self.config.file_name
         else:
             dtime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            path = Path.cwd() / f"{dtime}.log"
+            path = base_path / f"{dtime}.log"
 
         f_handler = logging.FileHandler(path, encoding=self.config.encoding, delay=True)
         f_handler.setFormatter(self.config.formatter)
