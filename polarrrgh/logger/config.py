@@ -39,8 +39,3 @@ class LoggerConfig(msgspec.Struct):
     @classmethod
     def from_json(cls: Type[LoggerConfig], path: Path) -> LoggerConfig:
         raise NotImplementedError
-
-
-if __name__ == "__main__":
-    lc = LoggerConfig.default()
-    print(lc)

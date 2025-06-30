@@ -21,6 +21,7 @@ class LogCtx:
         # TODO: it should be restricted to add the same handler twice
         logger.addHandler(self.handler)
 
+        # Redirect system hook to "do nothing"
         sys.excepthook = lambda *args: None
 
     def __enter__(self):
@@ -33,24 +34,33 @@ class LogCtx:
         exc_tb: TracebackType,
     ):
         if exc_tb:
-            sio = StringIO()
-            traceback.print_exception(exc_type, exc_value, exc_tb, limit=None, file=sio)
-            s = sio.getvalue()
-            sio.close()
-            if s[-1:] == "\n":
-                s = s[:-1]
-
-            tb_info = traceback.extract_tb(exc_tb, 1)[0]
-            record = logging.LogRecord(
-                tb_info.name,
-                logging.ERROR,
-                tb_info.filename,
-                tb_info.lineno,
-                s,
-                [],
-                None,
-            )
-
+            record = LogCtx._exc_to_logrecord(exc_type, exc_value, exc_tb)
             self.handler.emit(record)
 
         self.handler.close()
+
+    @staticmethod
+    def _exc_to_logrecord(
+        exc_type: Type[BaseException],
+        exc_value: BaseException,
+        exc_tb: TracebackType,
+    ) -> logging.LogRecord:
+        sio = StringIO()
+        traceback.print_exception(exc_type, exc_value, exc_tb, limit=None, file=sio)
+        exc_str = sio.getvalue()
+        sio.close()
+
+        if exc_str[-1:] == "\n":
+            exc_str = exc_str[:-1]
+
+        tb_info = traceback.extract_tb(exc_tb, 1)[0]
+
+        return logging.LogRecord(
+            name=tb_info.name,
+            level=logging.ERROR,
+            pathname=tb_info.filename,
+            lineno=tb_info.lineno,
+            msg=exc_str,
+            args=[],
+            exc_info=None,
+        )
